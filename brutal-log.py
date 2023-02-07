@@ -2,8 +2,11 @@ import argparse
 from termcolor import colored
 import requests
 import pyfiglet
-from sys import exit
+import sys
 import os
+import furl
+
+#John por favor lee sobre furl y arregla el problema que hay en la funcion "GET_Req" en la linea 81 y cuando lo hagas elimina este comentario
 
 #show banner
 result = pyfiglet.figlet_format("Brutal-Log")
@@ -15,6 +18,7 @@ parser = argparse.ArgumentParser(description = BrutusDescription, prog = "Brutal
 parser.add_argument('-h', "--help", help = "displays help", action = "help")
 parser.add_argument('-f', "--fuzz", action = "store_true", help = "directory enumeration mode")
 parser.add_argument('-m', "--method", required = False, choices = ("get", "post"), help = "Specifies METHOD used be it POST or GET")
+parser.add_argument('-p', "--param", help = "Specifies parameters used")
 parser.add_argument('-w', "--wordlist", action = "store", required=True, help = "Specifies the WORDLIST used for the attack")
 parser.add_argument("-u", '--url', required = True, help = "Specifies the target URL")
 args = parser.parse_args()
@@ -78,7 +82,8 @@ def GET_Req():
 	try:
 		print("Sending GET Request")
 		for i in lines:
-			reqGET = requests.get(args.url)
+			fullURL = furl(args.url).add({args.param}).url
+			reqGET = requests.get(fullURL)
 			print(colored(args.url, "blue"), "<---------> status code:", statusCode(reqGET))
 	except requests.exceptions.MissingSchema:
 		print(colored("Error", "red"),"\nMissing Schema, did you mean?: http(s)://" + args.url)
