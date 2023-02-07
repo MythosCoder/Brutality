@@ -5,6 +5,15 @@ import pyfiglet
 import sys
 import os
 
+"""
+Notas importante:
+- debemos de hacer que si se selecciona
+  el modo de Fuzzing no esten disponibles
+  las demas opciones.
+
+- Los Request son muy lentos hay que optimizar la velocidad creo que se podria hacer con multithreading...
+"""
+
 #shows the banner
 result = pyfiglet.figlet_format("Brutal-Log")
 print(result)
@@ -12,12 +21,14 @@ print(result)
 #Arguments Parser, and program options
 BrutusDescription = "Brutal-log is a tool made for brute forcing web logins"
 parser = argparse.ArgumentParser(description = BrutusDescription, prog = "Brutal-Log", add_help = False, epilog = "We are not responsible for the ilegal uses of this tool")
+
 parser.add_argument('-h', "--help", help = "displays help", action = "help")
 parser.add_argument('-f', "--fuzz", action = "store_true", help = "directory enumeration mode")
 parser.add_argument('-m', "--method", required = False, choices = ("get", "post"), help = "Specifies METHOD used be it POST or GET")
-parser.add_argument('-p', "--param", help = "Specifies parameters used")
+parser.add_argument('-p', "--param", required = True, help = "Specifies parameters used")
 parser.add_argument('-w', "--wordlist", action = "store", required=True, help = "Specifies the WORDLIST used for the attack")
 parser.add_argument("-u", '--url', required = True, help = "Specifies the target URL")
+
 args = parser.parse_args()
 
 #store every wordlist value inside lines
@@ -30,8 +41,10 @@ if(os.path.isfile(args.wordlist)):
 			for line in wordL:
 				line = line.strip()
 				lines.append(line)
+
 	finally:
 		wordL.close()
+
 else:
 	print(colored("ERROR", "red"),"\nplease check file path -->", "\"" + args.wordlist + "\"")
 	sys.exit(0)
@@ -43,10 +56,13 @@ def FuzzingMode():
 		for i in lines:
 			reqGET = requests.get(args.url + "/" + i)
 			print(colored(args.url + "/" + i, "blue"), "<-----> status code:", statusCode(reqGET))
+
 	except requests.exceptions.ConnectionError:
 		print(colored("Connection ERROR", "red"))
+
 	except requests.exceptions.InvalidURL:
 		print(colored("Invalid URL"))
+
 	else:
 		print("error")
 
@@ -70,15 +86,17 @@ def statusCode(code):
 def GET_Req():
 	try:
 		print("Sending GET Request")
-		#John si lees esto por favor optimiza este loop si no lo haces antes lo hare cuando tenga tiempo
-		for i in lines:
-			payload = {args.param : lines[]}
+		for i in range(len(lines)):
+			payload = {args.param : lines[i]}
 			reqGET = requests.get(args.url, params = payload)
-			print(colored(reqGET.url, "blue"), "<---------> status code:", statusCode(reqGET))
+			print(colored(reqGET.url, "blue"), "<--", len(reqGET.content) , "---> status code:", statusCode(reqGET))
+
 	except requests.exceptions.MissingSchema:
 		print(colored("Error", "red"),"\nMissing Schema, did you mean?: http(s)://" + args.url)
+
 	except requests.exceptions.ConnectionError:
 		print(colored("Connection ERROR", "red"))
+
 	else:
 		print("Connection Error")
 
