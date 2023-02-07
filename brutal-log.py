@@ -4,15 +4,12 @@ import requests
 import pyfiglet
 import sys
 import os
-import furl
 
-#John por favor lee sobre furl y arregla el problema que hay en la funcion "GET_Req" en la linea 81 y cuando lo hagas elimina este comentario
-
-#show banner
+#shows the banner
 result = pyfiglet.figlet_format("Brutal-Log")
 print(result)
 
-#Arguments Parser
+#Arguments Parser, and program options
 BrutusDescription = "Brutal-log is a tool made for brute forcing web logins"
 parser = argparse.ArgumentParser(description = BrutusDescription, prog = "Brutal-Log", add_help = False, epilog = "We are not responsible for the ilegal uses of this tool")
 parser.add_argument('-h', "--help", help = "displays help", action = "help")
@@ -23,7 +20,7 @@ parser.add_argument('-w', "--wordlist", action = "store", required=True, help = 
 parser.add_argument("-u", '--url', required = True, help = "Specifies the target URL")
 args = parser.parse_args()
 
-#wordlist
+#store every wordlist value inside lines
 lines = []
 
 #check if the path the user inputed is valid
@@ -53,21 +50,13 @@ def FuzzingMode():
 	else:
 		print("error")
 
-#POST request
+#sends the POST request 
+#te dejare el post request yo me encargo del GET
 def POST_Req():
-	try:
-		print("Sending POST Request")
-		reqPOST = requests.post(args.url)
-		print(colored(args.url, "blue"), "<--------->", "status code:", statusCode(reqPOST))
-	except requests.exceptions.MissingSchema:
-		print(colored("Error", "red"),"\nMissing Schema, did you mean?: http(s)://" + args.url)
-	except requests.exceptions.ConnectionError:
-		print(colored("Error", "red"),"\nConnection Error")
-	else:
-		print("error")
+	pass
 
+#changing the color depending on the status code
 def statusCode(code):
-	#changing color depending on status code
 	if(code.status_code >= 400 and code.status_code < 500):
 		return colored(code.status_code, "red")
 
@@ -77,14 +66,15 @@ def statusCode(code):
 	elif(code.status_code >= 300 and code.status_code < 400):
 		return colored(code.status_code, "orange")
 
-#Get Request
+#sends the GET Request
 def GET_Req():
 	try:
 		print("Sending GET Request")
+		#John si lees esto por favor optimiza este loop si no lo haces antes lo hare cuando tenga tiempo
 		for i in lines:
-			fullURL = furl(args.url).add({args.param}).url
-			reqGET = requests.get(fullURL)
-			print(colored(args.url, "blue"), "<---------> status code:", statusCode(reqGET))
+			payload = {args.param : lines[]}
+			reqGET = requests.get(args.url, params = payload)
+			print(colored(reqGET.url, "blue"), "<---------> status code:", statusCode(reqGET))
 	except requests.exceptions.MissingSchema:
 		print(colored("Error", "red"),"\nMissing Schema, did you mean?: http(s)://" + args.url)
 	except requests.exceptions.ConnectionError:
@@ -92,14 +82,20 @@ def GET_Req():
 	else:
 		print("Connection Error")
 
+#check command line options and check if user has privileges
+#Falta optimizar esta seccion del codigo, se puede implementar mejor
 def run():
 	if(os.getuid() != 0):
 		print("You must have privileges to use Brutus!")
 		sys.exit(0)
+
 	if(args.fuzz == True):
 		FuzzingMode()
+
 	if(args.method == "post"):
 		POST_Req()
+
 	elif(args.method == "get"):
 		GET_Req()
+
 run()
