@@ -37,7 +37,7 @@ lines = []
 #check if the path the user inputed is valid
 if(os.path.isfile(args.wordlist)):
 	try:
-		with open(args.wordlist) as wordL:
+		with open(args.wordlist, 'rb') as wordL:
 			for line in wordL:
 				line = line.strip()
 				lines.append(line)
@@ -67,7 +67,6 @@ def FuzzingMode():
 		print("error")
 
 #sends the POST request 
-#te dejare el post request yo me encargo del GET
 def POST_Req():
 	pass
 
@@ -89,7 +88,7 @@ def GET_Req():
 		for i in range(len(lines)):
 			payload = {args.param : lines[i]}
 			reqGET = requests.get(args.url, params = payload)
-			print(colored(reqGET.url, "blue"), "<--", len(reqGET.content) , "---> status code:", statusCode(reqGET))
+			print(colored(reqGET.url, "blue"), "<------> status code:", statusCode(reqGET))
 
 	except requests.exceptions.MissingSchema:
 		print(colored("Error", "red"),"\nMissing Schema, did you mean?: http(s)://" + args.url)
@@ -101,7 +100,6 @@ def GET_Req():
 		print("Connection Error")
 
 #check command line options and check if user has privileges
-#Falta optimizar esta seccion del codigo, se puede implementar mejor
 def run():
 	if(os.getuid() != 0):
 		print("You must have privileges to use Brutus!")
