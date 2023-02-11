@@ -7,10 +7,6 @@ import sys, os
 
 """
 Notas importante:
-- debemos de hacer que si se selecciona
-  el modo de Fuzzing no esten disponibles
-  las demas opciones.
-
 - Los Request son muy lentos hay que optimizar la velocidad creo que se podria hacer con multithreading...
 """
 
@@ -21,11 +17,12 @@ print(result)
 #Arguments Parser, and program options
 BrutusDescription = "Brutal-log is a tool made for brute forcing web logins"
 parser = argparse.ArgumentParser(description = BrutusDescription, prog = "Brutal-Log", add_help = False, epilog = "We are not responsible for the ilegal uses of this tool")
+group = parser.add_mutually_exclusive_group()
 
 parser.add_argument('-h', "--help", help = "displays help", action = "help")
-parser.add_argument('-f', "--fuzz", action = "store_true", help = "directory enumeration mode")
+group.add_argument('-f', "--fuzz", action = "store_true", help = "directory enumeration mode")
 parser.add_argument('-m', "--method", required = False, choices = ("get", "post"), help = "Specifies METHOD used be it POST or GET")
-parser.add_argument('-p', "--param", help = "Specifies parameters used")
+group.add_argument('-p', "--param", help = "Specifies parameters used")
 parser.add_argument('-w', "--wordlist", action = "store", required=True, help = "Specifies the WORDLIST used for the attack")
 parser.add_argument("-u", '--url', required = True, help = "Specifies the target URL")
 
