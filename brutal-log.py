@@ -1,14 +1,9 @@
 import argparse
-import concurrent.futures
+from webbrowser import open_new_tab
 from termcolor import colored
 import requests
 import pyfiglet
 import sys, os
-
-"""
-Notas importante:
-- Los Request son muy lentos hay que optimizar la velocidad creo que se podria hacer con multithreading...
-"""
 
 #shows the banner
 result = pyfiglet.figlet_format("Brutal-Log")
@@ -25,6 +20,7 @@ parser.add_argument('-m', "--method", required = False, choices = ("get", "post"
 group.add_argument('-p', "--param", help = "Specifies parameters used")
 parser.add_argument('-w', "--wordlist", action = "store", required=True, help = "Specifies the WORDLIST used for the attack")
 parser.add_argument("-u", '--url', required = True, help = "Specifies the target URL")
+#parser.add_argument("-t", '--tor', help = "uses tor socks for the requests")
 
 args = parser.parse_args()
 
@@ -48,18 +44,24 @@ else:
 #directory enumeration mode
 def FuzzingMode():
 	try:
+		ask = input("would you like to open browser tab for found directories?(Y/N)")
 		print("fuzzing web directories")
 		for i in lines:
-			session = requests.Session()
 			byte2str = i.decode("utf-8")
-			reqGET = session.get(args.url + "/" + byte2str, stream = True)
+			reqGET = requests.head(args.url + "/" + byte2str, timeout = 5)
 			print(colored(args.url + "/" + byte2str, "blue"), "<-----> status code:", statusCode(reqGET))
+
+			if((ask == 'y' or ask == 'Y') and (reqGET.status_code >= 200 and reqGET.status_code < 400)):
+				open_new_tab(args.url + "/" + byte2str)
 
 	except requests.exceptions.ConnectionError:
 		print(colored("Connection ERROR", "red"))
 
 	except requests.exceptions.InvalidURL:
 		print(colored("Invalid URL"))
+
+	except requests.exceptions.MissingSchema:
+		print(colored("Error", "red"),"\nMissing Schema, did you mean?: http(s)://" + args.url)
 
 	else:
 		print("error")
@@ -85,7 +87,7 @@ def GET_Req():
 		print("Sending GET Request")
 		for i in range(len(lines)):
 			payload = {args.param : lines[i]}
-			reqGET = requests.get(args.url, params = payload)
+			reqGET = requests.head(args.url, params = payload)
 			print(colored(reqGET.url, "blue"), "<------> status code:", statusCode(reqGET))
 
 	except requests.exceptions.MissingSchema:
@@ -104,12 +106,18 @@ def run():
 		sys.exit(0)
 
 	if(args.fuzz == True):
-		FuzzingMode()
+		try:
+			FuzzingMode()
+		except KeyboardInterrupt:
+			print("\nexiting...")
 
 	if(args.method == "post"):
 		POST_Req()
 
-	elif(args.method == "get"):
-		GET_Req()
+	if(args.method == "get"):
+		try:
+			GET_Req()
+		except KeyboardInterrupt:
+			print("\nexiting...")
 
 run()
