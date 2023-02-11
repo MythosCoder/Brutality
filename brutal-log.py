@@ -1,9 +1,9 @@
 import argparse
+import concurrent.futures
 from termcolor import colored
 import requests
 import pyfiglet
-import sys
-import os
+import sys, os
 
 """
 Notas importante:
@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser(description = BrutusDescription, prog = "Brutal
 parser.add_argument('-h', "--help", help = "displays help", action = "help")
 parser.add_argument('-f', "--fuzz", action = "store_true", help = "directory enumeration mode")
 parser.add_argument('-m', "--method", required = False, choices = ("get", "post"), help = "Specifies METHOD used be it POST or GET")
-parser.add_argument('-p', "--param", required = True, help = "Specifies parameters used")
+parser.add_argument('-p', "--param", help = "Specifies parameters used")
 parser.add_argument('-w', "--wordlist", action = "store", required=True, help = "Specifies the WORDLIST used for the attack")
 parser.add_argument("-u", '--url', required = True, help = "Specifies the target URL")
 
@@ -41,7 +41,6 @@ if(os.path.isfile(args.wordlist)):
 			for line in wordL:
 				line = line.strip()
 				lines.append(line)
-
 	finally:
 		wordL.close()
 
@@ -54,8 +53,10 @@ def FuzzingMode():
 	try:
 		print("fuzzing web directories")
 		for i in lines:
-			reqGET = requests.get(args.url + "/" + i)
-			print(colored(args.url + "/" + i, "blue"), "<-----> status code:", statusCode(reqGET))
+			session = requests.Session()
+			byte2str = i.decode("utf-8")
+			reqGET = session.get(args.url + "/" + byte2str, stream = True)
+			print(colored(args.url + "/" + byte2str, "blue"), "<-----> status code:", statusCode(reqGET))
 
 	except requests.exceptions.ConnectionError:
 		print(colored("Connection ERROR", "red"))
