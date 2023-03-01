@@ -1,9 +1,18 @@
 import argparse
 from webbrowser import open_new_tab
-from termcolor import colored
 import requests
 import pyfiglet
 import sys, os
+import threading
+
+#colors
+class colors:
+	blue = '\033[94m'
+	cyan = '\033[96m'
+	green = '\033[92m'
+	yellow = '\033[93m'
+	red = '\033[91m'
+	end = '\033[0m'
 
 #shows the banner
 result = pyfiglet.figlet_format("Brutal-Log")
@@ -20,6 +29,7 @@ parser.add_argument('-m', "--method", required = False, choices = ("get", "post"
 group.add_argument('-p', "--param", help = "Specifies parameters used")
 parser.add_argument('-w', "--wordlist", action = "store", required=True, help = "Specifies the WORDLIST used for the attack")
 parser.add_argument("-u", '--url', required = True, help = "Specifies the target URL")
+parser.add_argument("-t", "--threads", type = int, const = 10 ,help = "sets threads", nargs = "?")
 #parser.add_argument("-t", '--tor', help = "uses tor socks for the requests")
 
 args = parser.parse_args()
@@ -38,7 +48,7 @@ if(os.path.isfile(args.wordlist)):
 		wordL.close()
 
 else:
-	print(colored("ERROR", "red"),"\nplease check file path -->", "\"" + args.wordlist + "\"")
+	print(colors.red + "ERROR" + colors.end,"\nplease check file path -->", "\"" + args.wordlist + "\"")
 	sys.exit(0)
 
 #directory enumeration mode
@@ -49,22 +59,22 @@ def FuzzingMode():
 		for i in lines:
 			byte2str = i.decode("utf-8")
 			reqGET = requests.head(args.url + "/" + byte2str, timeout = 5)
-			print(colored(args.url + "/" + byte2str, "blue"), "<-----> status code:", statusCode(reqGET))
+			print(colors.blue + args.url + "/" + byte2str + colors.end, "<-----> status code:", statusCode(reqGET))
 
 			if((ask == 'y' or ask == 'Y') and (reqGET.status_code >= 200 and reqGET.status_code < 400)):
 				open_new_tab(args.url + "/" + byte2str)
 
 	except requests.exceptions.ConnectionError:
-		print(colored("Connection ERROR", "red"))
+		print(colors.red + "Connection ERROR" + colors.end)
 
 	except requests.exceptions.InvalidURL:
-		print(colored("Invalid URL"))
+		print(colors.red + "Invalid URL" + colors.end)
 
 	except requests.exceptions.MissingSchema:
-		print(colored("Error", "red"),"\nMissing Schema, did you mean?: http(s)://" + args.url)
+		print(colors.red + "Error" + colors.end,"\nMissing Schema, did you mean?: http(s)://" + args.url)
 
 	else:
-		print("error")
+		print(colors.red + "error" + colors.end)
 
 #sends the POST request 
 def POST_Req():
@@ -73,13 +83,19 @@ def POST_Req():
 #changing the color depending on the status code
 def statusCode(code):
 	if(code.status_code >= 400 and code.status_code < 500):
-		return colored(code.status_code, "red")
+		return colors.red + str(code.status_code) + colors.end
 
 	elif(code.status_code >= 200 and code.status_code < 300):
-		return colored(code.status_code, "green")
+		return colors.green + str(code.status_code) + colors.end
 
 	elif(code.status_code >= 300 and code.status_code < 400):
-		return colored(code.status_code, "orange")
+		return colors.yellow + str(code.status_code) + colors.end
+
+#implementing threading
+def runBrute(Request):
+	for i in range(args.threads):
+		t = threading.Thread(target=Request)
+		t.start
 
 #sends the GET Request
 def GET_Req():
@@ -88,16 +104,16 @@ def GET_Req():
 		for i in range(len(lines)):
 			payload = {args.param : lines[i]}
 			reqGET = requests.head(args.url, params = payload)
-			print(colored(reqGET.url, "blue"), "<------> status code:", statusCode(reqGET))
+			print(colors.blue + reqGET.url + colors.end, "<------> status code:", statusCode(reqGET))
 
 	except requests.exceptions.MissingSchema:
-		print(colored("Error", "red"),"\nMissing Schema, did you mean?: http(s)://" + args.url)
+		print(colors.red + "Error" + colors.end,"\nMissing Schema, did you mean?: http(s)://" + args.url)
 
 	except requests.exceptions.ConnectionError:
-		print(colored("Connection ERROR", "red"))
+		print(colors.red + "Connection ERROR" + colors.end)
 
 	else:
-		print("Connection Error")
+		print(colors.red + "Connection Error" + colors.end)
 
 #check command line options and check if user has privileges
 def run():
@@ -107,17 +123,19 @@ def run():
 
 	if(args.fuzz == True):
 		try:
-			FuzzingMode()
+			runBrute(FuzzingMode())
 		except KeyboardInterrupt:
 			print("\nexiting...")
+			sys.exit(0)
 
 	if(args.method == "post"):
 		POST_Req()
 
 	if(args.method == "get"):
 		try:
-			GET_Req()
+			runBrute(GET_Req())
 		except KeyboardInterrupt:
 			print("\nexiting...")
+			sys.exit(0)
 
 run()
