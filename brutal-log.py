@@ -2,7 +2,7 @@ import argparse
 from webbrowser import open_new_tab
 import requests
 import pyfiglet
-import sys, os
+import sys,os
 import threading
 
 #colors
@@ -29,7 +29,7 @@ parser.add_argument('-m', "--method", required = False, choices = ("get", "post"
 group.add_argument('-p', "--param", help = "Specifies parameters used")
 parser.add_argument('-w', "--wordlist", action = "store", required=True, help = "Specifies the WORDLIST used for the attack")
 parser.add_argument("-u", '--url', required = True, help = "Specifies the target URL")
-parser.add_argument("-t", "--threads", type = int, const = 10 ,help = "sets threads", nargs = "?")
+parser.add_argument("-t", "--threads", type = int, default = 10, help = "sets threads", nargs = "?")
 #parser.add_argument("-t", '--tor', help = "uses tor socks for the requests")
 
 args = parser.parse_args()
@@ -93,9 +93,13 @@ def statusCode(code):
 
 #implementing threading
 def runBrute(Request):
-	for i in range(args.threads):
-		t = threading.Thread(target=Request)
-		t.start
+	#check if valid integer range of threads
+	if(args.threads >= 1 and args.threads <= 50):
+		for i in range(args.threads):
+			t = threading.Thread(target=Request)
+			t.start
+	else:
+		print(colors.red + "Invalid thread number" + colors.end)
 
 #sends the GET Request
 def GET_Req():
@@ -125,7 +129,7 @@ def run():
 		try:
 			runBrute(FuzzingMode())
 		except KeyboardInterrupt:
-			print("\nexiting...")
+			print(colors.yellow + "\nexiting..." + colors.end)
 			sys.exit(0)
 
 	if(args.method == "post"):
@@ -135,7 +139,7 @@ def run():
 		try:
 			runBrute(GET_Req())
 		except KeyboardInterrupt:
-			print("\nexiting...")
+			print(colors.yellow + "\nexiting..." + colors.end)
 			sys.exit(0)
 
 run()
