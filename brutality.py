@@ -5,7 +5,7 @@ import sys,os
 import threading
 from random import choice
 
-#colors
+#displayed colors
 class colors:
 	blue = '\033[94m'
 	cyan = '\033[96m'
@@ -23,18 +23,20 @@ print(banner)
 #Arguments Parser, and program options
 class argsManagement:
 	BrutusDescription = "Brutality is a tool made for brute forcing web logins"
+	
+	#some args
 	parser = argparse.ArgumentParser(description = BrutusDescription, prog = "Brutality", add_help = False, epilog = "I'm not responsible for the ilegal uses of this tool")
-	group = parser.add_mutually_exclusive_group()
-
 	parser.add_argument('-h', "--help", help = "displays help", action = "help")
-	group.add_argument('-f', "--fuzz", action = "store_true", help = "directory enumeration mode")
 	parser.add_argument('-m', "--method", required = False, choices = ("get", "post"), help = "Specifies METHOD used be it POST or GET")
-
-	group.add_argument('-p', "--param", help = "Specifies parameters used")
-
 	parser.add_argument('-w', "--wordlist", action = "store", required=True, help = "Specifies the WORDLIST used for the attack")
 	parser.add_argument("-u", '--url', required = True, help = "Specifies the target URL")
-	parser.add_argument("-t", "--threads", type = int, default = 10, help = "sets threads", nargs = "?")
+        parser.add_argument("-t", "--threads", type = int, default = 10, help = "sets threads", nargs = "?")
+	
+	#grouped args
+	group = parser.add_mutually_exclusive_group()
+	group.add_argument('-f', "--fuzz", action = "store_true", help = "directory enumeration mode")
+	group.add_argument('-p', "--param", help = "Specifies parameters used")
+
 	#parser.add_argument("-t", '--tor', help = "uses tor socks for the requests")
 
 args = argsManagement.parser.parse_args()
@@ -139,6 +141,10 @@ def GET_Req():
 
 #check command line options and check if user has privileges
 def main():
+	if(sys.version_info[0] < 3):
+		print("[!] python version lower to 3rd not supported")
+		sys.exit(1)
+
 	if(os.getuid() != 0):
 		print("You must have privileges to use Brutus!")
 		sys.exit(0)
@@ -147,6 +153,7 @@ def main():
 		print(colors.green + "running on", args.threads, "threads" + colors.end)
 		try:
 			runBrute(FuzzingMode())
+
 		except KeyboardInterrupt:
 			print(colors.yellow + "\nexiting..." + colors.end)
 			sys.exit(0)
