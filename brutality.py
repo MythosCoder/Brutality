@@ -19,7 +19,6 @@ class colors:
 banner = pyfiglet.figlet_format("Brutality")
 print(banner)
 
-
 #Arguments Parser, and program options
 class argsManagement:
 	BrutusDescription = "Brutality is a tool made for brute forcing web logins"
@@ -30,7 +29,7 @@ class argsManagement:
 	parser.add_argument('-m', "--method", required = False, choices = ("get", "post"), help = "Specifies METHOD used be it POST or GET")
 	parser.add_argument('-w', "--wordlist", action = "store", required=True, help = "Specifies the WORDLIST used for the attack")
 	parser.add_argument("-u", '--url', required = True, help = "Specifies the target URL")
-        parser.add_argument("-t", "--threads", type = int, default = 10, help = "sets threads", nargs = "?")
+	parser.add_argument("-t", "--threads", type = int, default = 10, help = "sets threads", nargs = "?")
 	
 	#grouped args
 	group = parser.add_mutually_exclusive_group()
@@ -55,7 +54,7 @@ if(os.path.isfile(args.wordlist)):
 		wordL.close()
 
 else:
-	print(colors.red + "ERROR" + colors.end,"\n[!] please check file path ->", colors.blue + "\"" + args.wordlist + "\"" + colors.end)
+	print(colors.red + "ERROR" + colors.end,"\n[!] please check file path ->", colors.yellow + "\"" + args.wordlist + "\"" + colors.end)
 	sys.exit(0)
 
 #randomize User-Agent
@@ -70,37 +69,38 @@ def randomAgent():
 	return choice(user_agents)
 
 #directory enumeration mode
-def FuzzingMode():
+def DiscoveryMode():
 	agent = {'User-Agent': randomAgent()}
 	try:
-		print("Ignoring",colors.red,"404",colors.end,"status")
-		ask = input("would you like to open a browser tab for found directories?(Y/N)")
-		print("fuzzing web directories")
-		for i in lines:
+		print(f"[i] Ignoring {colors.red} 404 {colors.end} status")
+		ask = input("[i] would you like to open a browser tab for found content?(Y/N)")
+		print("[i] Looking for web directories")
+		for i in lines:			
 			byte2str = i.decode("utf-8")
 			if(byte2str.startswith('/')):
-				reqGET = requests.head(args.url + byte2str, timeout = 3, headers = agent)
+				reqGET = requests.get(args.url + byte2str, timeout = 3, headers = agent)
 				if(reqGET.status_code < 404):
-					print(colors.blue + args.url + byte2str + colors.end, "<-----> status code:", statusCode(reqGET))
+					print(colors.blue + args.url + byte2str + colors.end, "<----> Status code:", statusCode(reqGET), f"{colors.cyan}size[{len(reqGET.content)}]{colors.end}")
 			else:
-				reqGET = requests.head(args.url + "/" + byte2str, timeout = 3, headers = agent)
+				reqGET = requests.get(args.url + "/" + byte2str, timeout = 3, headers = agent)
 				if(reqGET.status_code < 404):
-					print(colors.blue + args.url + "/" + byte2str + colors.end, "<----> status code:", statusCode(reqGET))
+					print(colors.blue + args.url + "/" + byte2str + colors.end, "<----> Status code:", statusCode(reqGET), f"{colors.cyan}size[{len(reqGET.content)}]{colors.end}")
 
 			if((ask == 'y' or ask == 'Y') and (reqGET.status_code >= 200 and reqGET.status_code < 400)):
 				open_new_tab(args.url + '/' + byte2str)
 
 	except requests.exceptions.ConnectionError:
-		print(colors.red + "Connection ERROR" + colors.end)
+		print(colors.red + "[!] Connection ERROR" + colors.end)
 
 	except requests.exceptions.InvalidURL:
-		print(colors.red + "Invalid URL" + colors.end)
+
+		print(colors.red + "[!] Invalid URL" + colors.end)
 
 	except requests.exceptions.MissingSchema:
-		print(colors.red + "Error" + colors.end,"\nMissing Schema, did you mean?: http(s)://" + args.url)
+		print(colors.red + "Error" + colors.end,"\n[!] Missing Schema, did you mean?: http(s)://" + args.url)
 
 	else:
-		print(colors.red + "error" + colors.end)
+		print(colors.red + "[!] Error" + colors.end)
 
 def POST_Req():
 	pass
@@ -108,13 +108,13 @@ def POST_Req():
 #changing the color depending on the status code
 def statusCode(code):
 	if(code.status_code >= 200 and code.status_code < 300):
-		return colors.green + str(code.status_code) + colors.end
+		return colors.green + "(" + str(code.status_code) + ")" + colors.end
 
 	elif(code.status_code >= 300 and code.status_code < 400):
-		return colors.yellow + str(code.status_code) + colors.end
+		return colors.yellow + "(" + str(code.status_code) + ")" + colors.end
 
 #implementing threading
-def runBrute(Request):
+def runThreads(Request):
 	for i in range(args.threads):
 			t = threading.Thread(target=Request)
 			t.start
@@ -123,11 +123,11 @@ def GET_Req():
 	try:
 		if(args.param == None):
 			sys.exit(0)
-			print("No Get variable name inputed exiting...")
+			print("[!] No Get variable name inputed exiting...")
 		print("Sending GET Request")
 		for i in range(len(lines)):
 			values = {args.param : lines[i]}
-			reqGET = requests.head(args.url, params = values)
+			reqGET = requests.get(args.url, params = values)
 			print(colors.blue + reqGET.url + colors.end, "<------> status code:", statusCode(reqGET))
 
 	except requests.exceptions.MissingSchema:
@@ -142,30 +142,30 @@ def GET_Req():
 #check command line options and check if user has privileges
 def main():
 	if(sys.version_info[0] < 3):
-		print("[!] python version lower to 3rd not supported")
+		print("[!] python version lower than version 3, not supported")
 		sys.exit(1)
 
 	if(os.getuid() != 0):
-		print("You must have privileges to use Brutus!")
+		print("[!] You must have privileges to use Brutus!")
 		sys.exit(0)
 
 	if(args.fuzz == True):
-		print(colors.green + "running on", args.threads, "threads" + colors.end)
+		print(colors.green + "[i] running on", args.threads, "threads" + colors.end)
 		try:
-			runBrute(FuzzingMode())
+			runThreads(DiscoveryMode())
 
 		except KeyboardInterrupt:
-			print(colors.yellow + "\nexiting..." + colors.end)
+			print(colors.yellow + "\n[i] exiting..." + colors.end)
 			sys.exit(0)
 
 	if(args.method == "post"):
-		POST_Req()
+		runThreads(POST_Req())
 
 	if(args.method == "get"):
 		try:
-			runBrute(GET_Req())
+			runThreads(GET_Req())
 		except KeyboardInterrupt:
-			print(colors.yellow + "\nexiting..." + colors.end)
+			print(colors.yellow + "\n[i] exiting..." + colors.end)
 			sys.exit(0)
 
 #run the program
