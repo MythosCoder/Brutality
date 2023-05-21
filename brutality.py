@@ -6,17 +6,17 @@ import threading
 from random import choice
 
 #displayed colors
-class colors:
-	blue = '\033[94m'
-	cyan = '\033[96m'
-	green = '\033[92m'
-	yellow = '\033[93m'
-	red = '\033[91m'
-	end = '\033[0m'
+class Colors:
+	BLUE = '\033[94m'
+	CYAN = '\033[96m'
+	GREEN = '\033[92m'
+	YELLOW = '\033[93m'
+	RED = '\033[91m'
+	END = '\033[0m'
 
 #alternative to "colors.blue + string + colors.end"
 def colored(string, color):
-	return getattr(colors, color) + string + colors.end
+	return getattr(Colors, color.upper()) + string + Colors.END
 
 #displays the banner
 banner = pyfiglet.figlet_format("Brutality")
@@ -36,7 +36,7 @@ class argsManagement:
 	
 	#grouped args
 	group = parser.add_mutually_exclusive_group()
-	group.add_argument('-f', "--fuzz", action = "store_true", help = "directory enumeration mode")
+	group.add_argument('-d', "--discover", action = "store_true", help = "directory enumeration mode")
 	group.add_argument('-p', "--param", help = "Specifies parameters used")
 
 	#parser.add_argument("-t", '--tor', help = "uses tor socks for the requests")
@@ -57,7 +57,7 @@ if(os.path.isfile(args.wordlist)):
 		wordL.close()
 
 else:
-	print(colored("ERROR\n", "red") + "[!] please check file path ->", colored(f"\"{args.wordlist}\"","yellow"))
+	print(colored("ERROR\n", "red") + "[!] Could not read file, please check file path ->", colored(f"\"{args.wordlist}\"","yellow"))
 	sys.exit(0)
 
 #randomize User-Agent
@@ -78,16 +78,16 @@ def DiscoveryMode():
 		print(f"[i] Ignoring", colored("404", "red"), "status")
 		ask = input("[i] would you like to open a browser tab for found content?(Y/N)")
 		print("[i] Looking for web directories")
-		for i in lines:			
+		for i in lines:
 			byte2str = i.decode("utf-8")
 			if(byte2str.startswith('/')):
 				reqGET = requests.get(args.url + byte2str, headers = agent)
 				if(reqGET.status_code < 404):
-					print(colors.blue + args.url + byte2str + colors.end, "<----> Status code:", statusCode(reqGET), colored(f"size[{len(reqGET.content)}]", "cyan"))
+					print(colors.BLUE + args.url + byte2str + Colors.END, "<----> Status code:", statusCode(reqGET), colored(f"size[{len(reqGET.content)}]", "cyan"))
 			else:
 				reqGET = requests.get(args.url + "/" + byte2str, headers = agent)
 				if(reqGET.status_code < 404):
-					print(colors.blue + args.url + "/" + byte2str + colors.end, "<----> Status code:", statusCode(reqGET), colored(f"size[{len(reqGET.content)}]", "cyan"))
+					print(Colors.BLUE + args.url + "/" + byte2str + Colors.END, "<----> Status code:", statusCode(reqGET), colored(f"size[{len(reqGET.content)}]", "cyan"))
 
 			if((ask == 'y' or ask == 'Y') and (reqGET.status_code >= 200 and reqGET.status_code < 400)):
 				open_new_tab(args.url + '/' + byte2str)
@@ -142,34 +142,43 @@ def GET_Req():
 	else:
 		print(colored("Connection Error", "red"))
 
-#check command line options and check if user has privileges
-def main():
-	if(sys.version_info[0] < 3):
+#check if running python version is not lower than version 3
+def check_python_version():
+	PYTHON_VERSION = 3
+
+	if(sys.version_info[0] < PYTHON_VERSION):
 		print("[!] python version lower than version 3, not supported")
 		sys.exit(1)
 
-	if(os.getuid() != 0):
-		print("[!] You must have privileges to use Brutus!")
-		sys.exit(0)
-
-	if(args.fuzz == True):
+def run_discovery_mode():
+	if(args.discover == True):
 		print(colored(f"[i] running on {args.threads} threads", "cyan"))
 		try:
 			runThreads(DiscoveryMode())
-
 		except KeyboardInterrupt:
 			print(colored("\n[i] exiting...", "yellow"))
-			sys.exit(0)
 
+def check_method():
 	if(args.method == "post"):
 		runThreads(POST_Req())
 
-	if(args.method == "get"):
+	elif(args.method == "get"):
 		try:
 			runThreads(GET_Req())
 		except KeyboardInterrupt:
 			print(colored("\n[i] exiting...", "yellow"))
 			sys.exit(0)
 
-#run the program
-main()
+#check user privileges
+def check_privileges():
+	if(os.getuid() != 0):
+		print("[!] you must have privileges to use Brutality!")
+
+
+
+if __name__ == "__main__":
+	check_python_version()
+	check_privileges()
+	run_discovery_mode()
+	check_method()
+
