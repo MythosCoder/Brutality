@@ -14,6 +14,9 @@ class colors:
 	red = '\033[91m'
 	end = '\033[0m'
 
+#alternative to "colors.blue + string + colors.end"
+def colored(string, color):
+	return getattr(colors, color) + string + colors.end
 
 #displays the banner
 banner = pyfiglet.figlet_format("Brutality")
@@ -54,7 +57,7 @@ if(os.path.isfile(args.wordlist)):
 		wordL.close()
 
 else:
-	print(colors.red + "ERROR" + colors.end,"\n[!] please check file path ->", colors.yellow + "\"" + args.wordlist + "\"" + colors.end)
+	print(colored("ERROR\n", "red") + "[!] please check file path ->", colored(f"\"{args.wordlist}\"","yellow"))
 	sys.exit(0)
 
 #randomize User-Agent
@@ -72,35 +75,35 @@ def randomAgent():
 def DiscoveryMode():
 	agent = {'User-Agent': randomAgent()}
 	try:
-		print(f"[i] Ignoring {colors.red} 404 {colors.end} status")
+		print(f"[i] Ignoring", colored("404", "red"), "status")
 		ask = input("[i] would you like to open a browser tab for found content?(Y/N)")
 		print("[i] Looking for web directories")
 		for i in lines:			
 			byte2str = i.decode("utf-8")
 			if(byte2str.startswith('/')):
-				reqGET = requests.get(args.url + byte2str, timeout = 3, headers = agent)
+				reqGET = requests.get(args.url + byte2str, headers = agent)
 				if(reqGET.status_code < 404):
-					print(colors.blue + args.url + byte2str + colors.end, "<----> Status code:", statusCode(reqGET), f"{colors.cyan}size[{len(reqGET.content)}]{colors.end}")
+					print(colors.blue + args.url + byte2str + colors.end, "<----> Status code:", statusCode(reqGET), colored(f"size[{len(reqGET.content)}]", "cyan"))
 			else:
-				reqGET = requests.get(args.url + "/" + byte2str, timeout = 3, headers = agent)
+				reqGET = requests.get(args.url + "/" + byte2str, headers = agent)
 				if(reqGET.status_code < 404):
-					print(colors.blue + args.url + "/" + byte2str + colors.end, "<----> Status code:", statusCode(reqGET), f"{colors.cyan}size[{len(reqGET.content)}]{colors.end}")
+					print(colors.blue + args.url + "/" + byte2str + colors.end, "<----> Status code:", statusCode(reqGET), colored(f"size[{len(reqGET.content)}]", "cyan"))
 
 			if((ask == 'y' or ask == 'Y') and (reqGET.status_code >= 200 and reqGET.status_code < 400)):
 				open_new_tab(args.url + '/' + byte2str)
 
 	except requests.exceptions.ConnectionError:
-		print(colors.red + "[!] Connection ERROR" + colors.end)
+		print(colored("[!] Connection ERROR", "red"))
 
 	except requests.exceptions.InvalidURL:
 
-		print(colors.red + "[!] Invalid URL" + colors.end)
+		print(colored("[!] Invalid URL", "red"))
 
 	except requests.exceptions.MissingSchema:
-		print(colors.red + "Error" + colors.end,"\n[!] Missing Schema, did you mean?: http(s)://" + args.url)
+		print(colored("Error", "red"),"\n[!] Missing Schema, did you mean?: http(s)://" + args.url)
 
 	else:
-		print(colors.red + "[!] Error" + colors.end)
+		print(colored("[!] Error", "red"))
 
 def POST_Req():
 	pass
@@ -108,10 +111,10 @@ def POST_Req():
 #changing the color depending on the status code
 def statusCode(code):
 	if(code.status_code >= 200 and code.status_code < 300):
-		return colors.green + "(" + str(code.status_code) + ")" + colors.end
+		return colored(f"({str(code.status_code)})", "green")
 
 	elif(code.status_code >= 300 and code.status_code < 400):
-		return colors.yellow + "(" + str(code.status_code) + ")" + colors.end
+		return colored(f"({str(code.status_code)})", "yellow")
 
 #implementing threading
 def runThreads(Request):
@@ -131,13 +134,13 @@ def GET_Req():
 			print(colors.blue + reqGET.url + colors.end, "<------> status code:", statusCode(reqGET))
 
 	except requests.exceptions.MissingSchema:
-		print(colors.red + "Error" + colors.end,"\nMissing Schema, did you mean?: http(s)://" + args.url)
+		print(colored("Error", "red"),"\nMissing Schema, did you mean?: http(s)://" + args.url)
 
 	except requests.exceptions.ConnectionError:
-		print(colors.red + "Connection ERROR" + colors.end)
+		print(colored("Connection ERROR", "red"))
 
 	else:
-		print(colors.red + "Connection Error" + colors.end)
+		print(colored("Connection Error", "red"))
 
 #check command line options and check if user has privileges
 def main():
@@ -150,12 +153,12 @@ def main():
 		sys.exit(0)
 
 	if(args.fuzz == True):
-		print(colors.green + "[i] running on", args.threads, "threads" + colors.end)
+		print(colored(f"[i] running on {args.threads} threads", "cyan"))
 		try:
 			runThreads(DiscoveryMode())
 
 		except KeyboardInterrupt:
-			print(colors.yellow + "\n[i] exiting..." + colors.end)
+			print(colored("\n[i] exiting...", "yellow"))
 			sys.exit(0)
 
 	if(args.method == "post"):
@@ -165,7 +168,7 @@ def main():
 		try:
 			runThreads(GET_Req())
 		except KeyboardInterrupt:
-			print(colors.yellow + "\n[i] exiting..." + colors.end)
+			print(colored("\n[i] exiting...", "yellow"))
 			sys.exit(0)
 
 #run the program
