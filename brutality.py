@@ -22,6 +22,17 @@ def colored(string, color):
 banner = pyfiglet.figlet_format("Brutality")
 print(banner)
 
+def run_discovery_mode():
+	if(args.discover == True):
+		print(colored(f"[i] running on {args.threads} threads", "cyan"))
+		print(f"[i] Ignoring", colored("404", "red"), "status")
+		ask = input("[i] would you like to open a browser tab for found content?(Y/N)")
+		print("[i] Looking for web directories")
+		try:
+			runThreads(DiscoveryMode)
+		except KeyboardInterrupt:
+			SaveTask()
+
 #Arguments Parser, and program options
 class argsManagement:
 	BrutusDescription = "Brutality is a tool made for brute forcing web logins"
@@ -33,7 +44,8 @@ class argsManagement:
 	parser.add_argument('-w', "--wordlist", action = "store", required=True, help = "Specifies the WORDLIST used for the attack")
 	parser.add_argument("-u", '--url', required = True, help = "Specifies the target URL")
 	parser.add_argument("-t", "--threads", type = int, default = 10, help = "sets threads", nargs = "?")
-	
+	parser.add_argument("--hc", "--hidecode", type = int, help = "hide status code", nargs = "?")
+
 	#grouped args
 	group = parser.add_mutually_exclusive_group()
 	group.add_argument('-d', "--discover", action = "store_true", help = "directory enumeration mode")
@@ -60,6 +72,15 @@ else:
 	print(colored("ERROR\n", "red") + "[!] Could not read file, please check file path ->", colored(f"\"{args.wordlist}\"","yellow"))
 	sys.exit(0)
 
+#save current progress then exit
+def SaveTask():
+	with open(".brutalSave", "wb") as saveFile:
+		saveFile.write(pickle.dumps("text"))
+		print(colored("\n[i] saving current progress...", "cyan"))
+		print(colored("[i] exiting...", "yellow"))
+		saveFile.close()
+		sys.exit(0)
+
 #randomize User-Agent
 def randomAgent():
 	user_agents = ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
@@ -71,26 +92,25 @@ def randomAgent():
 
 	return choice(user_agents)
 
+#found matches
+found = []
+
 #directory enumeration mode
 def DiscoveryMode():
 	agent = {'User-Agent': randomAgent()}
 	try:
-		print(f"[i] Ignoring", colored("404", "red"), "status")
-		ask = input("[i] would you like to open a browser tab for found content?(Y/N)")
-		print("[i] Looking for web directories")
 		for i in lines:
 			byte2str = i.decode("utf-8")
 			if(byte2str.startswith('/')):
 				reqGET = requests.get(args.url + byte2str, headers = agent)
 				if(reqGET.status_code < 404):
-					print(colors.BLUE + args.url + byte2str + Colors.END, "<----> Status code:", statusCode(reqGET), colored(f"size[{len(reqGET.content)}]", "cyan"))
+					found.append(i)
+					print(colored(f"{args.url + '/'  + byte2str}", "blue"), "<----> Status code:", statusCode(reqGET), colored(f"size[{len(reqGET.content)}]", "cyan"))
 			else:
 				reqGET = requests.get(args.url + "/" + byte2str, headers = agent)
 				if(reqGET.status_code < 404):
-					print(Colors.BLUE + args.url + "/" + byte2str + Colors.END, "<----> Status code:", statusCode(reqGET), colored(f"size[{len(reqGET.content)}]", "cyan"))
-
-			if((ask == 'y' or ask == 'Y') and (reqGET.status_code >= 200 and reqGET.status_code < 400)):
-				open_new_tab(args.url + '/' + byte2str)
+					found.append(i)
+					print(colored(f"{args.url + '/' + byte2str}", "blue"), "<----> Status code:", statusCode(reqGET), colored(f"size[{len(reqGET.content)}]", "cyan"))
 
 	except requests.exceptions.ConnectionError:
 		print(colored("[!] Connection ERROR", "red"))
@@ -102,8 +122,6 @@ def DiscoveryMode():
 	except requests.exceptions.MissingSchema:
 		print(colored("Error", "red"),"\n[!] Missing Schema, did you mean?: http(s)://" + args.url)
 
-	else:
-		print(colored("[!] Error", "red"))
 
 def POST_Req():
 	pass
@@ -118,20 +136,19 @@ def statusCode(code):
 
 #implementing threading
 def runThreads(Request):
-	for i in range(args.threads):
-			t = threading.Thread(target=Request)
-			t.start
+	t1 = threading.Thread(target=Request)
+	t1.start()
 
 def GET_Req():
 	try:
 		if(args.param == None):
+			print(colored("[!] No Get variable name inputed exiting...", "red"))
 			sys.exit(0)
-			print("[!] No Get variable name inputed exiting...")
 		print("Sending GET Request")
 		for i in range(len(lines)):
 			values = {args.param : lines[i]}
 			reqGET = requests.get(args.url, params = values)
-			print(colors.blue + reqGET.url + colors.end, "<------> status code:", statusCode(reqGET))
+			print(colored(f"{reqGET.url}","blue"), "<------> status code:", statusCode(reqGET), colored(f"size[{len(reqGET.content)}]", "cyan"))
 
 	except requests.exceptions.MissingSchema:
 		print(colored("Error", "red"),"\nMissing Schema, did you mean?: http(s)://" + args.url)
@@ -153,21 +170,26 @@ def check_python_version():
 def run_discovery_mode():
 	if(args.discover == True):
 		print(colored(f"[i] running on {args.threads} threads", "cyan"))
+		print(f"[i] Ignoring", colored("404", "red"), "status")
+		ask = input("[i] would you like to open a browser tab for found content?(Y/N)")
+		print("[i] Looking for web directories")
 		try:
-			runThreads(DiscoveryMode())
+			runThreads(DiscoveryMode)
 		except KeyboardInterrupt:
-			print(colored("\n[i] exiting...", "yellow"))
+			SaveTask()
 
 def check_method():
 	if(args.method == "post"):
-		runThreads(POST_Req())
+		try:
+			runThreads(POST_Req)
+		except KeyboardInterrupt:
+			SaveTask()
 
 	elif(args.method == "get"):
 		try:
-			runThreads(GET_Req())
+			runThreads(GET_Req)
 		except KeyboardInterrupt:
-			print(colored("\n[i] exiting...", "yellow"))
-			sys.exit(0)
+			SaveTask()
 
 #check user privileges
 def check_privileges():
@@ -175,10 +197,8 @@ def check_privileges():
 		print("[!] you must have privileges to use Brutality!")
 
 
-
 if __name__ == "__main__":
 	check_python_version()
 	check_privileges()
 	run_discovery_mode()
 	check_method()
-
